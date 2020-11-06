@@ -26,7 +26,7 @@
     name: gcp-ansible-address-public
     region: australia-southeast1
     project: gcp-cm-tool
-    subnetwork: "{{ subnet }}"
+    subnetwork: "{{ subnet1 }}"
     auth_kind: "{{ auth_kind }}"
     service_account_file: "{{ service_account_file }}"
     state: present
@@ -44,17 +44,6 @@
     state: present
   register: subnet2
 
-- name: Create IP address for instance name
-  gcp_compute_address:
-    name: gcp-ansible-address-private1
-    region: australia-southeast1
-    project: gcp-cm-tool
-    subnetwork: "{{ subnet }}"
-    auth_kind: "{{ auth_kind }}"
-    service_account_file: "{{ service_account_file }}"
-    state: present
-  register: address2
-
 - name: Create subnet within above VPC network
   gcp_compute_subnetwork:
     name: gcp-ansible-subnet-private2
@@ -66,17 +55,6 @@
     service_account_file: "{{ service_account_file }}"
     state: present
   register: subnet3
-
-- name: Create IP address for instance name
-  gcp_compute_address:
-    name: gcp-ansible-address-private2
-    region: australia-southeast1
-    project: gcp-cm-tool
-    subnetwork: "{{ subnet }}"
-    auth_kind: "{{ auth_kind }}"
-    service_account_file: "{{ service_account_file }}"
-    state: present
-  register: address3
 
 - name: Create firewall rule to allow port 80 and 22 for all source IPs
   gcp_compute_firewall:
@@ -146,7 +124,7 @@
 - name: Create new instance
   gcp_compute_instance:
     state: present
-    name: linux
+    name: centos
     machine_type: "{{ machine_type }}"
     disks:
     - auto_delete: true
@@ -157,7 +135,7 @@
       subnetwork: "{{ subnet1 }}"
       access_configs:
       - name: External NAT
-        nat_ip: "{{ address }}"
+        nat_ip: "{{ address1 }}"
         type: ONE_TO_ONE_NAT
     zone: australia-southeast1-b
     tags:
@@ -169,7 +147,7 @@
   register: instancecentos
 
 - debug:
-    var: instancelinux
+    var: instancecentos
 ###########################################################################
 #                                                                         #
 #                           UBUNTU CREATION                               #
@@ -177,7 +155,7 @@
 ###########################################################################
 - name: Create disk for new instance
   gcp_compute_disk:
-    name: ubunt
+    name: ubuntuprivate
     size_gb: "{{ disk_size_gb }}"
     source_image: 'projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts'
     zone: australia-southeast1-b
@@ -185,24 +163,20 @@
     auth_kind: "{{ auth_kind }}"
     service_account_file: "{{ service_account_file }}"
     state: present
-  register: diskubunt
+  register: diskubuntu
 
 - name: Create new instance
   gcp_compute_instance:
     state: present
-    name: ubunt
+    name: ubuntu
     machine_type: "{{ machine_type }}"
     disks:
     - auto_delete: true
       boot: true
-      source: "{{ diskubunt }}"
+      source: "{{ diskubuntu }}"
     network_interfaces:
     - network: "{{ network }}"
-      subnetwork: "{{ subnet }}"
-      access_configs:
-      - name: External NAT
-        nat_ip: "{{ address }}"
-        type: ONE_TO_ONE_NAT
+      subnetwork: "{{ subnet2 }}"
     zone: australia-southeast1-b
     tags:
       items:
@@ -210,49 +184,45 @@
     project: gcp-cm-tool
     auth_kind: "{{ auth_kind }}"
     service_account_file: "{{ service_account_file }}"
-  register: instanceubunt
+  register: instanceubuntu
 - debug:
-    var: instanceubunt
+    var: instanceubuntu
 ###########################################################################
 #                                                                         #
-#                           WINDOWS CREATION                              #
+#                             MYSQL CREATION                              #
 #                                                                         #
 ###########################################################################
 - name: Create disk for new instance
   gcp_compute_disk:
-    name: win
+    name: ubuntumysql
     size_gb: "{{ disk_size_gb }}"
-    source_image: 'projects/windows-cloud/global/images/family/windows-2019'
+    source_image: 'projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts'
     zone: australia-southeast1-b
     project: gcp-cm-tool
     auth_kind: "{{ auth_kind }}"
     service_account_file: "{{ service_account_file }}"
     state: present
-  register: diskwin
+  register: diskmysql
 
 - name: Create new instance
   gcp_compute_instance:
     state: present
-    name: win
+    name: mysql
     machine_type: "{{ machine_type }}"
     disks:
     - auto_delete: true
       boot: true
-      source: "{{ diskwin }}"
+      source: "{{ diskmysql }}"
     network_interfaces:
     - network: "{{ network }}"
-      subnetwork: "{{ subnet }}"
-      access_configs:
-      - name: External NAT
-        nat_ip: "{{ address }}"
-        type: ONE_TO_ONE_NAT
+      subnetwork: "{{ subnet3 }}"
     zone: australia-southeast1-b
     tags:
       items:
-        - gcp-ansible-windows
+        - gcp-ansible-mysql
     project: gcp-cm-tool
     auth_kind: "{{ auth_kind }}"
     service_account_file: "{{ service_account_file }}"
-  register: instancewin
+  register: instancemysql
 - debug:
-    var: instancewin
+    var: instancemysql
