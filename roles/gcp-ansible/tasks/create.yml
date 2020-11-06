@@ -1,0 +1,258 @@
+---
+- name: Create VPC Network
+  gcp_compute_network:
+    name: gcp-ansible-network
+    auto_create_subnetworks: yes
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: network
+
+- name: Create subnet within above VPC network
+  gcp_compute_subnetwork:
+    name: gcp-ansible-subnet-public
+    region: australia-southeast1
+    network: "{{ network }}"
+    ip_cidr_range: 10.0.0.0/24
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: subnet1
+
+- name: Create IP address for instance name
+  gcp_compute_address:
+    name: gcp-ansible-address-public
+    region: australia-southeast1
+    project: gcp-cm-tool
+    subnetwork: "{{ subnet }}"
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: address1
+
+- name: Create subnet within above VPC network
+  gcp_compute_subnetwork:
+    name: gcp-ansible-subnet-private1
+    region: australia-southeast1
+    network: "{{ network }}"
+    ip_cidr_range: 10.0.0.0/24
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: subnet2
+
+- name: Create IP address for instance name
+  gcp_compute_address:
+    name: gcp-ansible-address-private1
+    region: australia-southeast1
+    project: gcp-cm-tool
+    subnetwork: "{{ subnet }}"
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: address2
+
+- name: Create subnet within above VPC network
+  gcp_compute_subnetwork:
+    name: gcp-ansible-subnet-private2
+    region: australia-southeast1
+    network: "{{ network }}"
+    ip_cidr_range: 10.0.2.0/24
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: subnet3
+
+- name: Create IP address for instance name
+  gcp_compute_address:
+    name: gcp-ansible-address-private2
+    region: australia-southeast1
+    project: gcp-cm-tool
+    subnetwork: "{{ subnet }}"
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: address3
+
+- name: Create firewall rule to allow port 80 and 22 for all source IPs
+  gcp_compute_firewall:
+    name: ansible-firewall-1
+    network: "{{ network }}"
+    allowed:
+    - ip_protocol: tcp
+      ports: ['80','22']
+    target_tags:
+      - gcp-ansible-1
+    source_ranges: ['0.0.0.0/0']
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: firewall1
+
+- name: Create firewall rule to allow port 80 and 22 for all source IPs
+  gcp_compute_firewall:
+    name: ansible-firewall-2
+    network: "{{ network }}"
+    allowed:
+    - ip_protocol: tcp
+      ports: ['80','22']
+    target_tags:
+      - gcp-ansible-2
+    source_ranges: ['0.0.0.0/0']
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: firewall2
+
+- name: Create firewall rule to allow port 80 and 22 for all source IPs
+  gcp_compute_firewall:
+    name: ansible-firewall-3
+    network: "{{ network }}"
+    allowed:
+    - ip_protocol: tcp
+      ports: ['80','22']
+    target_tags:
+      - gcp-ansible-3
+    source_ranges: ['0.0.0.0/0']
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: firewall3
+
+###########################################################################
+#                                                                         #
+#                           CENTOS CREATION                               #
+#                                                                         #
+###########################################################################
+- name: Create disk for new instance
+  gcp_compute_disk:
+    name: centospublic
+    size_gb: "{{ disk_size_gb }}"
+    source_image: 'projects/centos-cloud/global/images/centos-7-v20190116'
+    zone: australia-southeast1-b
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: diskcentos
+
+- name: Create new instance
+  gcp_compute_instance:
+    state: present
+    name: linux
+    machine_type: "{{ machine_type }}"
+    disks:
+    - auto_delete: true
+      boot: true
+      source: "{{ diskcentos }}"
+    network_interfaces:
+    - network: "{{ network }}"
+      subnetwork: "{{ subnet1 }}"
+      access_configs:
+      - name: External NAT
+        nat_ip: "{{ address }}"
+        type: ONE_TO_ONE_NAT
+    zone: australia-southeast1-b
+    tags:
+      items:
+        - gcp-ansible-centos
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+  register: instancecentos
+
+- debug:
+    var: instancelinux
+###########################################################################
+#                                                                         #
+#                           UBUNTU CREATION                               #
+#                                                                         #
+###########################################################################
+- name: Create disk for new instance
+  gcp_compute_disk:
+    name: ubunt
+    size_gb: "{{ disk_size_gb }}"
+    source_image: 'projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts'
+    zone: australia-southeast1-b
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: diskubunt
+
+- name: Create new instance
+  gcp_compute_instance:
+    state: present
+    name: ubunt
+    machine_type: "{{ machine_type }}"
+    disks:
+    - auto_delete: true
+      boot: true
+      source: "{{ diskubunt }}"
+    network_interfaces:
+    - network: "{{ network }}"
+      subnetwork: "{{ subnet }}"
+      access_configs:
+      - name: External NAT
+        nat_ip: "{{ address }}"
+        type: ONE_TO_ONE_NAT
+    zone: australia-southeast1-b
+    tags:
+      items:
+        - gcp-ansible-ubuntu
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+  register: instanceubunt
+- debug:
+    var: instanceubunt
+###########################################################################
+#                                                                         #
+#                           WINDOWS CREATION                              #
+#                                                                         #
+###########################################################################
+- name: Create disk for new instance
+  gcp_compute_disk:
+    name: win
+    size_gb: "{{ disk_size_gb }}"
+    source_image: 'projects/windows-cloud/global/images/family/windows-2019'
+    zone: australia-southeast1-b
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: present
+  register: diskwin
+
+- name: Create new instance
+  gcp_compute_instance:
+    state: present
+    name: win
+    machine_type: "{{ machine_type }}"
+    disks:
+    - auto_delete: true
+      boot: true
+      source: "{{ diskwin }}"
+    network_interfaces:
+    - network: "{{ network }}"
+      subnetwork: "{{ subnet }}"
+      access_configs:
+      - name: External NAT
+        nat_ip: "{{ address }}"
+        type: ONE_TO_ONE_NAT
+    zone: australia-southeast1-b
+    tags:
+      items:
+        - gcp-ansible-windows
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+  register: instancewin
+- debug:
+    var: instancewin

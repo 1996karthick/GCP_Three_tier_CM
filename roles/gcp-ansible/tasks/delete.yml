@@ -1,0 +1,70 @@
+---
+- name: delete an instance
+  gcp_compute_instance:
+    name: "{{ item }}"
+    zone: australia-southeast1-b
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: absent
+  with_items:
+    - "{{ instance_name }}"
+
+- name: delete an address
+  gcp_compute_address:
+    name: gcp-ansible-address-public
+    region: australia-southeast1
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: absent
+
+- name: delete a firewall
+  gcp_compute_firewall:
+    name: ansible-firewall-1
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: absent
+
+- name: delete a firewall
+  gcp_compute_firewall:
+    name: ansible-firewall-2
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: absent
+
+- name: delete a firewall
+  gcp_compute_firewall:
+    name: ansible-firewall-3
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: absent
+
+- name: register the existing network
+  gcp_compute_network:
+    name: gcp-ansible-network
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+  register: network
+
+- debug:
+    var: network
+
+- name: delete a subnetwork
+  shell:  |
+    echo "y" | gcloud compute networks subnets delete gcp-ansible-subnet-public --region australia-southeast1
+    echo "y" | gcloud compute networks subnets delete gcp-ansible-subnet-private1 --region australia-southeast1
+    echo "y" | gcloud compute networks subnets delete gcp-ansible-subnet-private2 --region australia-southeast1
+   
+- name: delete a network
+  gcp_compute_network:
+    name: gcp-ansible-network
+    project: gcp-cm-tool
+    auth_kind: "{{ auth_kind }}"
+    service_account_file: "{{ service_account_file }}"
+    state: absent
+
